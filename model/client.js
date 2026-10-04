@@ -6,7 +6,7 @@ const clientSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    fullName:{
+    firstName:{
         type: String,
         required: true,
         trim: true

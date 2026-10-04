@@ -1,4 +1,4 @@
-const clientModel = required('../model/client')
+const clientModel = require('../model/client')
 const otpGenerator = require('otp-generator')
 const bcrypt = require('bcrypt')
 const { sendSingleEmail } = require('../utils/brevo');
@@ -19,15 +19,15 @@ const generateOTP = () => ({
 
 exports.create = async (req, res) => {
     try{
-        const {lastName, fullName, email, password} = req.body
+        const {lastName, firstName, email, password} = req.body
         const normalizedFirstname = await autoCapitalizeFirstChar(firstName);
         const normalizedLastname = await autoCapitalizeFirstChar(lastName);
 
         const exisitingClient = await clientModel.findOne({email: email.toLowerCase()})
 
-        if(!exisitingClient){
-            return res.status(404).json({
-                message: 'Client not found'
+        if(exisitingClient){
+            return res.status(400).json({
+                message: 'Client already exists'
             })
         }
 
@@ -37,17 +37,19 @@ exports.create = async (req, res) => {
 
         const newClient = new clientModel({
             lastName: normalizedLastname,
-            fullName: normalizedFirstname,
+            firstName: normalizedFirstname,
             email: email.toLowerCase(),
             password: hashedPassword,
             otp,
             otpExpire
         })
 
+        await newClient.save()
+
         res.status(201).json({
             message: 'Client created sucessfully, Please check your email for verification.',
             data: newClient
-        })
+        });
     
 
     (async () => {
@@ -61,7 +63,7 @@ exports.create = async (req, res) => {
       } catch (error) {
         await newClient.deleteOne();
       }
-    })()
+    })();
   
     } catch(error){
         console.log(error.message)
