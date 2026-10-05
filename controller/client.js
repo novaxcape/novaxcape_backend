@@ -220,3 +220,43 @@ exports.login = async (req, res) => {
     })
   }
 }
+
+
+exports.changePassword = async (req, res) => {
+  try {
+        if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: 'Unauthorized - Invalid token'
+      });
+    }
+
+    const {oldPassword, newPassword} = req.body
+    const clientData = await clientModel.findById(req.user.id)
+    if(!clientData) {
+      return res.status(404).json({
+        message: "Client not found"
+      })
+    }
+
+    const checkPassword = await bcrypt.compare(oldPassword, clientData.password)
+    if(!checkPassword){
+      return res.status(400).json({
+        message: "Password is invalid"
+      })
+    }
+
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+    clientData.password = newPassword
+    res.status(200).json({
+      message: "Password changed successfully",
+      data: clientData
+    })
+  } catch(error) {
+    console.log(error.message)
+    res.status(500).json({
+      message: 'Something went wrong'
+    })
+  }
+}

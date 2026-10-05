@@ -6,7 +6,7 @@ info:
   description: Documentation for client endpoints
 
 paths:
-  /api/v1/client/register:
+  /api/v1/client:
     post:
       summary: Register client
       tags:
