@@ -31,11 +31,11 @@ const clientSchema = new mongoose.Schema({
 },
 isVerified:{
     type: Boolean,
-    dafault: false
+    default: false
 },
 role:{
     type: String,
-    dafault: 'Client'
+    default: 'Client'
 }
 })
 
