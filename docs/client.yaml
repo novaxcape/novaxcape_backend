@@ -1,0 +1,135 @@
+openapi: 3.0.0
+
+info:
+  title: Novaxcape Client API
+  version: 1.0.0
+  description: Documentation for client endpoints
+
+paths:
+  /api/v1/client/register:
+    post:
+      summary: Register client
+      tags:
+        - Client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+                - password
+                - gender
+              properties:
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+                email:
+                  type: string
+                  example: johndoe@gmail.com
+                password:
+                  type: string
+                  example: Password123@
+      responses:
+        "201":
+          description: Client registered successfully
+        "400":
+          description: Client with this email already exists
+        "500":
+          description: Something went wrong
+
+  /api/v1/client/verify-email:
+    post:
+      summary: Verify client email
+      tags:
+        - Client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otp
+              properties:
+                email:
+                  type: string
+                  example: johndoe@gmail.com
+                otp:
+                  type: string
+                  example: "123456"
+      responses:
+        "200":
+          description: Email verified successfully
+        "400":
+          description: Invalid OTP or OTP expired
+        "404":
+          description: User not found
+        "500":
+          description: Something went wrong
+
+  /api/v1/client/resend-otp:
+    post:
+      summary: Resend OTP
+      tags:
+        - Client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  example: johndoe@gmail.com
+      responses:
+        "200":
+          description: OTP resent successfully
+        "404":
+          description: User not found
+        "500":
+          description: Something went wrong
+
+  /api/v1/client/login:
+    post:
+      summary: Login client
+      tags:
+        - Client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: johndoe@gmail.com
+                password:
+                  type: string
+                  example: Password123@
+      responses:
+        "200":
+          description: Login successful
+        "400":
+          description: Invalid credentials or verify email first
+        "404":
+          description: Invalid credentials
+        "423":
+          description: Account locked
+        "429":
+          description: Too many failed login attempts
+        "500":
+          description: Something went wrong
