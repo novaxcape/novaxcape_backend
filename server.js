@@ -1,6 +1,6 @@
 require('dotenv').config()
 const express = require('express');
-const PORT = process.env.PORT
+const PORT = process.env.PORT || 3030
 const cookieParser = require('cookie-parser')
 const swaggerUi = require('swagger-ui-express')
 const swagger = require('./swagger')
@@ -13,7 +13,16 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser())
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+        const allowedOrigins = new Set([
+            process.env.FRONTEND_URL,
+            'http://localhost:3030',
+            'http://127.0.0.1:3030',
+            'https://novaxcape-backend.onrender.com'
+        ].filter(Boolean));
+
+        callback(null, !origin || allowedOrigins.has(origin));
+    },
     credentials: true
 }))
 
