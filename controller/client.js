@@ -87,11 +87,11 @@ exports.verify = async (req, res) => {
         })
       }
 
-      if(client.isVerified){
-        return res.status(400).json({
-          message: 'Client is already verified'
-        })
-      }
+      // if(client.isVerified){
+      //   return res.status(400).json({
+      //     message: 'Client is already verified'
+      //   })
+      // }
 
       if (!client.otpExpire || Date.now() > client.otpExpire.getTime()) {
       return res.status(400).json({
@@ -248,7 +248,8 @@ exports.changePassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(newPassword, salt)
 
-    clientData.password = newPassword
+    clientData.password = hashedPassword
+    await clientData.save()
     res.status(200).json({
       message: "Password changed successfully",
       data: clientData
@@ -257,6 +258,83 @@ exports.changePassword = async (req, res) => {
     console.log(error.message)
     res.status(500).json({
       message: 'Something went wrong'
+    })
+  }
+}
+
+
+
+exports.forgetPassword = async (req, res) => {
+  try {
+    const {email} = req.body
+    const checkClient = await clientModel.findOne({email: email.toLowerCase()})
+    if(!checkClient){
+      return res.status(404).json({
+        message: "Cleint not found"
+      })
+    }
+
+    const { otp, otpExpire } = generateOTP()
+
+    checkClient.otp = otp
+    checkClient.otpExpire = otpExpire
+    await checkClient.save()
+
+    res.status(200).json({
+      message: "Forgotten password successfully. Please check your email for verification.",
+    });
+
+    (async () => {
+      try {
+        const name = `${checkClient.firstName} ${checkClient.lastName}`;
+        await sendSingleEmail({
+          email: email.toLowerCase(),
+          name,
+          html: await sendOTPEmail(name, otp),
+          subject: "Reset password"
+        })
+      } catch (error) {
+        console.error('Unable to send password reset email:', error.message);
+      }
+    })()
+
+  } catch(error){
+    console.log(error.message)
+    if (res.headersSent) return;
+    res.status(500).json({
+      message: 'Something went wrong'
+    })
+  }
+}
+
+
+exports.resetPassword = async (req,res) => {
+  try{
+    const {email, password} = req.body
+    const checkClient = await clientModel.findOne({email: email.toLowerCase()})
+    if(!checkClient){
+      return res.status(404).json({
+        message: "Client not found"
+      })
+    }
+
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(password, salt)
+
+    checkClient.password = hashedPassword
+    checkClient.otp = undefined
+    checkClient.otpExpire = undefined
+    await checkClient.save()
+
+    return res.status(200).json({
+      message: "Password reset successfully"
+    })
+
+  }catch (error){
+    console.log(error.message)
+    if (res.headersSent) return;
+    res.status(500).json({
+      message: "Something went wrong"
     })
   }
 }

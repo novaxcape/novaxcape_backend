@@ -4,10 +4,26 @@ info:
   title: Novaxcape Client API
   version: 1.0.0
   description: Documentation for client endpoints
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+security: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
 paths:
   /api/v1/client:
     post:
+      operationId: registerClient
       summary: Register client
       tags:
         - Client
@@ -20,6 +36,7 @@ paths:
               required:
                 - firstName
                 - lastName
+                - email
                 - password
                 - gender
               properties:
@@ -34,7 +51,11 @@ paths:
                   example: johndoe@gmail.com
                 password:
                   type: string
+                  format: password
                   example: Password123@
+                gender:
+                  type: string
+                  example: Male
       responses:
         "201":
           description: Client registered successfully
@@ -45,6 +66,7 @@ paths:
 
   /api/v1/client/verify:
     post:
+      operationId: verifyClientEmail
       summary: Verify client email
       tags:
         - Client
@@ -76,6 +98,7 @@ paths:
 
   /api/v1/client/resendOtp:
     post:
+      operationId: resendVerificationOtp
       summary: Resend OTP
       tags:
         - Client
@@ -101,6 +124,7 @@ paths:
 
   /api/v1/client/login:
     post:
+      operationId: loginClient
       summary: Login client
       tags:
         - Client
@@ -119,17 +143,181 @@ paths:
                   example: johndoe@gmail.com
                 password:
                   type: string
+                  format: password
                   example: Password123@
       responses:
         "200":
-          description: Login successful
+          description: Login successful. The server also sets an httpOnly auth cookie named token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login successfully
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 64d9d4c5f9f8a24d95d3e1a1
+                      email:
+                        type: string
+                        example: johndoe@gmail.com
+                      role:
+                        type: string
+                        example: Client
+                      firstName:
+                        type: string
+                        example: John
+                      lastName:
+                        type: string
+                        example: Doe
         "400":
-          description: Invalid credentials or verify email first
+          description: Invalid credentials or client is not verified
         "404":
           description: Invalid credentials
         "423":
           description: Account locked
         "429":
           description: Too many failed login attempts
+        "500":
+          description: Something went wrong
+
+  /api/v1/client/change-password:
+    post:
+      operationId: changeClientPassword
+      summary: Change client password
+      tags:
+        - Client
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+                - confirmPassword
+              properties:
+                oldPassword:
+                  type: string
+                  format: password
+                  example: OldPassword123@
+                newPassword:
+                  type: string
+                  format: password
+                  example: NewPassword456@
+                confirmPassword:
+                  type: string
+                  format: password
+                  example: NewPassword456@
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 64d9d4c5f9f8a24d95d3e1a1
+                      email:
+                        type: string
+                        example: johndoe@gmail.com
+        "400":
+          description: Invalid old password or password validation failed
+        "401":
+          description: Unauthorized - invalid or missing token
+        "403":
+          description: Access denied for non-client users
+        "404":
+          description: Client not found
+        "500":
+          description: Something went wrong
+
+  /api/v1/client/forgot-password:
+    post:
+      operationId: requestPasswordReset
+      summary: Request password reset email
+      tags:
+        - Client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  example: johndoe@gmail.com
+      responses:
+        "200":
+          description: Password reset email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Forgotten password successfully. Please check your email for verification.
+        "404":
+          description: Client not found
+        "500":
+          description: Something went wrong
+
+  /api/v1/client/reset-password:
+    post:
+      operationId: resetClientPassword
+      summary: Reset client password
+      tags:
+        - Client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: johndoe@gmail.com
+                password:
+                  type: string
+                  format: password
+                  example: NewPassword456@
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password reset successfully
+        "400":
+          description: Password format is invalid
+        "404":
+          description: Client not found
         "500":
           description: Something went wrong
