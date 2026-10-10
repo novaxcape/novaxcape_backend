@@ -8,7 +8,7 @@ info:
     name: MIT
 
 servers:
-  - url: http://localhost:5000
+  - url: http://localhost:3030
     description: Local development server
 
 security: []
@@ -38,7 +38,6 @@ paths:
                 - lastName
                 - email
                 - password
-                - gender
               properties:
                 firstName:
                   type: string
@@ -53,9 +52,7 @@ paths:
                   type: string
                   format: password
                   example: Password123@
-                gender:
-                  type: string
-                  example: Male
+
       responses:
         "201":
           description: Client registered successfully
