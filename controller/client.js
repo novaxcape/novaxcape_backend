@@ -338,3 +338,46 @@ exports.resetPassword = async (req,res) => {
     })
   }
 }
+
+exports.logout = async (req, res, next) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    });
+
+    return res.status(200).json({
+      message: "Logout successful"
+    });
+
+  } catch (error) {
+    next(error)
+  }
+};
+
+exports.loginWithGoogle = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: 'Unauthorized - Invalid token'
+      });
+    }
+
+    const token = await jwt.sign({
+      id: req.user.id,
+      role: req.user.role
+    }, process.env.SECERT_KEY, { expiresIn: '1d' });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    return res.redirect(302, process.env.FRONTEND_URL);
+  } catch (error) {
+    next(error);
+  }
+}

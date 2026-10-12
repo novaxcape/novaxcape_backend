@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser')
 const swaggerUi = require('swagger-ui-express')
 const swagger = require('./swagger')
 const cors = require('cors')
+const {passport} = require('./middleware/passport')
 
 
 const route = require('./routes/client')
