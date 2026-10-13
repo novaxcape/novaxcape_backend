@@ -18,7 +18,7 @@ const generateOTP = () => ({
 });
 
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
     try{
         const {lastName, firstName, email, password} = req.body
         const normalizedFirstname = await autoCapitalizeFirstChar(firstName);
@@ -70,14 +70,12 @@ exports.create = async (req, res) => {
   
     } catch(error){
         console.log(error.message)
-        res.status(500).json({
-            message: 'Something went wrong'
-        })
+        next(error)
     }
 }
 
 
-exports.verify = async (req, res) => {
+exports.verify = async (req, res, next) => {
     try{
       const {email, otp} = req.body
       const client = await clientModel.findOne({email: email.toLowerCase()})
@@ -113,14 +111,12 @@ exports.verify = async (req, res) => {
       })
     } catch(error){
         console.log(error.message)
-        res.status(500).json({
-            message: 'Something went wrong'
-        })
+       next(error)
     }
 }
 
 
-exports.resendOtp = async (req, res) => {
+exports.resendOtp = async (req, res, next) => {
   try {
     const { email } = req.body;
     const normalizedEmail = email?.toLowerCase();
@@ -156,14 +152,12 @@ exports.resendOtp = async (req, res) => {
   } catch (error) {
     console.error(error.message);
     if (res.headersSent) return;
-    return res.status(500).json({
-      message: 'Something went wrong'
-    });
+    next(error)
   }
 }
 
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const {email, password} = req.body
     const existingClient = await clientModel.findOne({email: email.toLowerCase()})
@@ -215,14 +209,12 @@ exports.login = async (req, res) => {
 
   } catch(error){
     console.log(error.message)
-    res.status(500).json({
-      message: 'Something went wrong'
-    })
+    next(error)
   }
 }
 
 
-exports.changePassword = async (req, res) => {
+exports.changePassword = async (req, res, next) => {
   try {
         if (!req.user || !req.user.id) {
       return res.status(401).json({
@@ -256,15 +248,13 @@ exports.changePassword = async (req, res) => {
     })
   } catch(error) {
     console.log(error.message)
-    res.status(500).json({
-      message: 'Something went wrong'
-    })
+    next(error)
   }
 }
 
 
 
-exports.forgetPassword = async (req, res) => {
+exports.forgetPassword = async (req, res, next) => {
   try {
     const {email} = req.body
     const checkClient = await clientModel.findOne({email: email.toLowerCase()})
@@ -301,14 +291,12 @@ exports.forgetPassword = async (req, res) => {
   } catch(error){
     console.log(error.message)
     if (res.headersSent) return;
-    res.status(500).json({
-      message: 'Something went wrong'
-    })
+    next(error)
   }
 }
 
 
-exports.resetPassword = async (req,res) => {
+exports.resetPassword = async (req, res, next) => {
   try{
     const {email, password} = req.body
     const checkClient = await clientModel.findOne({email: email.toLowerCase()})
@@ -333,9 +321,7 @@ exports.resetPassword = async (req,res) => {
   }catch (error){
     console.log(error.message)
     if (res.headersSent) return;
-    res.status(500).json({
-      message: "Something went wrong"
-    })
+    next(error)
   }
 }
 
