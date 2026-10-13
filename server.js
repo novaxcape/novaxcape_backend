@@ -9,6 +9,7 @@ const {passport} = require('./middleware/passport')
 
 
 const route = require('./routes/client')
+const vendorRoute = require('./routes/vendor')
 
 const app = express();
 app.use(express.json());
@@ -19,6 +20,7 @@ app.use(cors())
 app.use('/apisDocs', swaggerUi.serve, swaggerUi.setup(swagger))
 
 app.use('/api/v1/client', route)
+app.use('/api/v1/vendor', vendorRoute)
 
 
 app.use((err, req, res, next) => {
