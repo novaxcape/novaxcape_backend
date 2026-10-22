@@ -37,7 +37,7 @@ role:{
     type: String,
     default: 'Client'
 }
-})
+}, {timestamps: true})
 
 const clientModel = mongoose.model('client', clientSchema);
 module.exports = clientModel;

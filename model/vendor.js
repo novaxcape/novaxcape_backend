@@ -36,7 +36,7 @@ const vendorSchema = new mongoose.Schema({
         return Date.now() + (1000*60*7)
     }
     }
-})
+}, {timestamps: true})
 
 const vendorModel = mongoose.model('vendor', vendorSchema);
 module.exports = vendorModel;

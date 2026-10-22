@@ -2,7 +2,8 @@ const vendorModel = require('../model/vendor')
 const otpGenerator = require('otp-generator')
 const bcrypt = require('bcrypt');
 const { sendSingleEmail } = require('../utils/brevo')
-const { sendOTPEmail } = require('../email')
+const { sendOTPEmail, resetPasswordTemplate, resetPasswordSuccessfulTemplate } = require('../email');
+const jwt = require('jsonwebtoken');
 
 const generateOTP = () => ({
   otp: otpGenerator.generate(6, {
@@ -98,11 +99,176 @@ exports.verifyEmail = async (req, res, next) => {
 
 
 exports.resendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = email?.toLowerCase();
+    const existingVendor = await vendorModel.findOne({ email: normalizedEmail });
+
+    if (!existingVendor) {
+      return res.status(404).json({
+        message: 'Vendor not found'
+      });
+    }
+
+    const { otp, otpExpire } = generateOTP();
+    existingVendor.otp = otp;
+    existingVendor.otpExpire = otpExpire;
+    await existingVendor.save();
+
+    const name = `${existingVendor.firstName} ${existingVendor.lastName}`;
+    sendOTPEmail(name, otp)
+      .then(html => sendSingleEmail({
+        email: normalizedEmail,
+        name,
+        html,
+        subject: 'RESEND: VERIFY OTP'
+      }))
+      .catch(error => {
+        console.error('Unable to resend verification email:', error.message);
+      });
+
+    return res.status(200).json({
+      message: 'OTP resent successfully. Please check your email.'
+    });
+
+  } catch (error) {
+    console.error(error.message);
+    if (res.headersSent) return;
+    next(error)
+  }
+}
+
+exports.login = async (req, res, next) => {
     try{
-        const {email} = req.body
-        
-    }catch(error){
+        const {email, password} = req.body
+        const vendor = await vendorModel.findOne({email: email.toLowerCase()})
+        if(!vendor) {
+            return res.status(404).json({
+                message: 'Invalid credentails'
+            })
+        }
+
+        const correctPassword = await bcrypt.compare(password, vendor.password)
+        if(!correctPassword){
+            return res.status(400).json({
+                message: 'Invalid credentails'
+            })
+        }
+
+        if(vendor.isVerified === false){
+            return res.status(400).json({
+                message: 'Please verify your email'
+            })
+        }
+
+        await vendor.save()
+
+        const token = jwt.sign(
+            { id: vendor._id, role: vendor.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+         res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    const data = {
+      id: vendor.id,
+      centerName: vendor.centerName,
+      email: vendor.email
+    }
+
+    res.status(200).json({
+        message: 'Login successful',
+        data
+    })
+    } catch (error) {
         console.log(error.message)
         next(error)
     }
 }
+
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false, digits: true, lowerCaseAlphabets: false });
+    const otpExpire = new Date(Date.now() + 1000 * 60 * 5);
+    const vendor = await vendorModel.findOne({ where: { email: email.toLowerCase() } })
+
+    if (!vendor) {
+      return res.status(404).json({
+        message: 'Vendor not found'
+      })
+    }
+
+    await vendor.update({ otp, otpExpire });
+
+    res.status(200).json({
+      message: 'Forgot password successful. Please check your email for OTP.'
+    });
+
+    (async () => {
+      try {
+        await sendSingleEmail({
+          email: email.toLowerCase(),
+          name: `${vendor.centerName}`,
+          html: await sendOTPEmail(`${vendor.centerName}`, otp),
+          subject: "Reset password"
+        })
+      } catch (error) {
+        console.log(error.message)
+      }
+    })()
+  } catch (error) {
+    console.log(error.message)
+    next(error);
+  }
+}
+
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { password, email } = req.body
+    const vendor = await vendorModel.findOne({ where: { email: email.toLowerCase() } })
+
+    if (!vendor) {
+      return res.status(404).json({
+        message: 'Invalid credential'
+      })
+    }
+
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await vendor.update({ password: hashedPassword });
+
+    res.status(200).json({
+      message: 'Password reset successful'
+    })
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+exports.logout = async (req, res, next) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+    });
+
+    return res.status(200).json({
+      message: "Logout successful"
+    });
+
+  } catch (error) {
+    next(error)
+  }
+};
+
